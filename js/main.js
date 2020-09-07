@@ -112,23 +112,29 @@ class View {
     
         // change the master panel cell size.
         this.svep.cellSize *= zoomFactor;
+
+        //paper.view.zoom *= zoomFactor;
+        //this.viewBorders.scale(1/zoomFactor);
         
-        this.updateSvepToSmallestChild();
-    
-        this.refreshView();
+        //if(this.updateSvepToSmallestChild())
+            this.refreshView();
     }
     
     moveView(x,y) {
         this.viewTopLeft = this.viewTopLeft.add(new paper.Point(x,y).multiply( 32 / this.svep.cellSize));
-        this.updateSvepToSmallestParent();
-        this.updateSvepToSmallestChild();
-        //paper.view.center = paper.view.center.add(new paper.Point(x,y).multiply(32));
-        this.viewBorders.position = this.viewBorders.position.subtract(new paper.Point(x,y).multiply(32)); // to keep the red frame at the same place.
-        this.refreshView();
+
+        paper.view.center = paper.view.center.add(new paper.Point(x,y).multiply(32));
+        this.viewBorders.position = this.viewBorders.position.add(new paper.Point(x,y).multiply(32)); // to keep the red frame at the same place.
+
+        // if( this.updateSvepToSmallestParent()) { 
+        //     this.updateSvepToSmallestChild();
+        //     this.refreshView();
+        // }
     }
     
     updateSvepToSmallestParent() {
         var self = this;
+        var updated = false;
 
         while(!svepEnclosesView()){
             if(!this.svep.parent)
@@ -136,9 +142,11 @@ class View {
             this.svep.parent.cellSize = this.svep.cellSize * this.svep.gridWidth / this.svep.gridSize.width;
             this.viewTopLeft = new paper.Point(this.svep.gridPos.x, this.svep.gridPos.y).add( this.viewTopLeft.divide(this.svep.parent.cellSize / this.svep.cellSize));
             this.svep = this.svep.parent;
+            updated = true;
             console.log("svep changed to parent");
         }
-    
+        return updated;
+
         function svepEnclosesView() {
             if(self.viewTopLeft.x < 0 || self.viewTopLeft.y < 0)
                 return false;
@@ -150,15 +158,23 @@ class View {
     
     updateSvepToSmallestChild() {
         var self = this;
-        this.svep.children.forEach( child => {
-            if(childEnclosesView(child)){
-                child.cellSize *= zoomFactor;
-                this.viewTopLeft = this.viewTopLeft.subtract(child.gridPos).multiply(this.svep.cellSize / child.cellSize);
-                this.svep = child;
-                console.log("svep changed to child");
-            }
-        });
-    
+
+        var updated = false;
+        var changedSvep = true;
+        while(changedSvep){
+            changedSvep = false;
+            this.svep.children.forEach( child => {
+                if(childEnclosesView(child)){
+                    child.cellSize *= zoomFactor;
+                    this.viewTopLeft = this.viewTopLeft.subtract(child.gridPos).multiply(this.svep.cellSize / child.cellSize);
+                    this.svep = child;
+                    changedSvep = true;
+                    updated = true;
+                    console.log("svep changed to child");
+                }
+            });
+        }
+        return updated;
         
         function childEnclosesView(child) {
             if(self.viewTopLeft.x < child.gridPos.x || self.viewTopLeft.y < child.gridPos.y)
