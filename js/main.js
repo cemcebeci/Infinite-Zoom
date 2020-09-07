@@ -117,7 +117,8 @@ class View {
         //this.viewBorders.scale(1/zoomFactor);
         
         //if(this.updateSvepToSmallestChild())
-            this.refreshView();
+        this.updateSvepToSmallestChild();
+        this.refreshView();
     }
     
     moveView(x,y) {
@@ -126,10 +127,13 @@ class View {
         paper.view.center = paper.view.center.add(new paper.Point(x,y).multiply(32));
         this.viewBorders.position = this.viewBorders.position.add(new paper.Point(x,y).multiply(32)); // to keep the red frame at the same place.
 
-        // if( this.updateSvepToSmallestParent()) { 
-        //     this.updateSvepToSmallestChild();
-        //     this.refreshView();
-        // }
+        
+        var change1 = this.updateSvepToSmallestParent();
+        var change2 = this.updateSvepToSmallestChild();
+        
+        if(change1 || change2)
+            this.refreshView();
+        
     }
     
     updateSvepToSmallestParent() {
