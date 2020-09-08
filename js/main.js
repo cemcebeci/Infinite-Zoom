@@ -11,7 +11,7 @@ function initCanvas(){
 
     var i1 = new SimpleItem(canvas, -4, -4, 1, 1); // the properties of this do not matter
 
-    addChildrenDrake(i1, 10);
+    addChildrenDrake(i1, 20);
 
     function addChildren(item, level) {
         if(level <= 0)
@@ -228,6 +228,7 @@ class View {
         if(!item.rect){
             item.rect = new paper.Shape.Rectangle(new paper.Point(0,0), new paper.Size(0,0));
             item.rect.fillColor = item.color;
+            item.rect.onMouseDown = function(event){ console.log(item);}
 
             if(item.raster)
                 item.raster.remove();
@@ -265,13 +266,18 @@ class View {
                         item.children.forEach( child => {if(child.rect) {hide(child);}});  
                     }
                 }
+
                 function inView(child) {
                     if(child.gridPos.x > self.viewTopLeft.x + viewWidth / self.svep.cellSize || child.gridPos.y > self.viewTopLeft.y + viewHeight / self.svep.cellSize)
                         return false;
                     if(child.gridPos.x + child.gridSize.width < self.viewTopLeft.x || child.gridPos.y + child.gridSize.height < self.viewTopLeft.y)
                         return false;
+
+                    // this attribute is used to calculate which of this item's children are in the view.
+                    child.viewTopLeftInGrid = (self.viewTopLeft.subtract(child.gridPos)).multiply(child.gridWidth / child.gridSize.width);
+                    console.log(child);
                     return true;
-                }
+                }   
             });
             return;
         }
@@ -301,7 +307,32 @@ class View {
         item.rect.strokeColor = "black";
 
 
-        item.children.forEach( child => {self.draw(child);});
+        item.children.forEach( child => {
+                
+            if(inView(child)){
+                self.draw(child);
+            } else if(child.rect) {
+                hide(child);
+
+                function hide( item) {     
+                    item.rect.remove();
+                    item.rect = null;
+                    item.children.forEach( child => {if(child.rect) {hide(child);}});  
+                }
+            }
+
+            function inView(child) {
+                if(child.gridPos.x > item.viewTopLeftInGrid.x + viewWidth / item.cellSize || child.gridPos.y > item.viewTopLeftInGrid.y + viewHeight / item.cellSize)
+                    return false;
+                if(child.gridPos.x + child.gridSize.width < item.viewTopLeftInGrid.x || child.gridPos.y + child.gridSize.height < item.viewTopLeftInGrid.y)
+                    return false;
+
+                // this attribute is used to calculate which of this item's children are in the view.
+                child.viewTopLeftInGrid = (item.viewTopLeftInGrid.subtract(child.gridPos)).multiply(child.gridWidth / child.gridSize.width);
+
+                return true;
+            }
+        });
 
 
         function determinePosition(item){
