@@ -49,9 +49,9 @@ class SimpleItem {
         this.gridHeight = 32;
         this.gridPos = {x:x, y:y};
         this.gridSize = {height:height, width:width};
-        // while(!this.color || this.color == this.parent.color)
-            // this.color = colors[Math.floor(Math.random() * 10)];
-        this.color = "doge";
+         while(!this.color || this.color == this.parent.color)
+             this.color = colors[Math.floor(Math.random() * 5)];
+        //this.color = "doge";
     }
 }
 
@@ -205,7 +205,7 @@ class View {
     }
 
     refreshView() {
-        paper.project.activeLayer.removeChildren();
+        //paper.project.activeLayer.removeChildren();
         console.log("refreshView() called!");
         
         // reset camera properties
@@ -225,46 +225,76 @@ class View {
     draw(item) {
         var self = this;
 
-        if(item.rect){
-            item.rect.remove();
+        if(!item.rect){
+            item.rect = new paper.Shape.Rectangle(new paper.Point(0,0), new paper.Size(0,0));
+            item.rect.fillColor = item.color;
+
             if(item.raster)
                 item.raster.remove();
         }
 
         if(item == this.svep) { // svep's cellSize and refPoint depend on the view. every other item's depends on svep.
-            item.rect = new paper.Shape.Rectangle(item.refPoint.add( viewPositionInPaper), new paper.Size(item.gridWidth, item.gridHeight).multiply(item.cellSize));
-            item.rect.strokeColor = "yellow";
-            if(item.color == "doge") {
-                item.raster = new paper.Raster("/home/cemcebeci/Desktop/doge.jpeg",item.rect.position);
-                item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
-            }
-            else{
-                item.rect.fillColor = item.color;
-            }
+            //item.rect = new paper.Shape.Rectangle(item.refPoint.add( viewPositionInPaper), new paper.Size(item.gridWidth, item.gridHeight).multiply(item.cellSize));
+            //item.rect.strokeColor = "yellow";
+            // if(item.color == "doge") {
+            //     item.raster = new paper.Raster("/home/cemcebeci/Desktop/doge.jpeg",item.rect.position);
+            //     item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
+            // }
+            // else{
+            //     item.rect.fillColor = item.color;
+            // }
             // item.raster = new paper.Raster("/home/cemcebeci/Desktop/drake.jpg",item.rect.position);
             // item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
 
             // item.raster.opacity = 1 - Math.min(1,item.raster.bounds.width/viewWidth) ;
+            item.rect.size = new paper.Size(item.gridWidth, item.gridHeight).multiply(item.cellSize);
+            item.rect.position = item.refPoint.add( viewPositionInPaper).add( new paper.Point( item.rect.size.width / 2, item.rect.size.height / 2));
 
-            item.children.forEach( child => {self.draw(child);});
+            item.children.forEach( child => {
+                
+                if(inView(child)){
+                    console.log("drawing a child of svep");
+                    self.draw(child);
+                } else if(child.rect) {
+                    console.log("hiding a child of svep");
+                    hide(child);
+
+                    function hide( item) {     
+                        item.rect.remove();
+                        item.rect = null;
+                        item.children.forEach( child => {if(child.rect) {hide(child);}});  
+                    }
+                }
+                function inView(child) {
+                    if(child.gridPos.x > self.viewTopLeft.x + viewWidth / self.svep.cellSize || child.gridPos.y > self.viewTopLeft.y + viewHeight / self.svep.cellSize)
+                        return false;
+                    if(child.gridPos.x + child.gridSize.width < self.viewTopLeft.x || child.gridPos.y + child.gridSize.height < self.viewTopLeft.y)
+                        return false;
+                    return true;
+                }
+            });
             return;
         }
     
         item.cellSize = item.parent.cellSize * item.gridSize.width / item.gridWidth; // temporary, okay for squares. 
         if(determineSize(item).width < minRenderLength || determineSize(item).height < minRenderLength){ // a very sloppy written optimization.
+            item.rect.remove();
+            item.rect = null;
             return;
         }
 
         item.refPoint = item.parent.refPoint.add( new paper.Point(item.parent.cellSize * item.gridPos.x, item.parent.cellSize * item.gridPos.y));
-        item.rect = new paper.Shape.Rectangle( determinePosition(item), determineSize(item));
-
-        if(item.color == "doge") {
-            item.raster = new paper.Raster("/home/cemcebeci/Desktop/doge.jpeg",item.rect.position);
-            item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
-        }
-        else{
-            item.rect.fillColor = item.color;
-        }
+        //item.rect = new paper.Shape.Rectangle( determinePosition(item), determineSize(item));
+        item.rect.size = determineSize(item);
+        item.rect.position = determinePosition(item).add( new paper.Point( item.rect.size.width / 2, item.rect.size.height / 2));
+        
+        // if(item.color == "doge") {
+        //     item.raster = new paper.Raster("/home/cemcebeci/Desktop/doge.jpeg",item.rect.position);
+        //     item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
+        // }
+        // else{
+        //     item.rect.fillColor = item.color;
+        // }
 
         //item.raster.opacity = 1 - Math.min(1,item.raster.bounds.width/viewWidth) ;
 
