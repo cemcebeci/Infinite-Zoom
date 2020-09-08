@@ -11,15 +11,26 @@ function initCanvas(){
 
     var i1 = new SimpleItem(canvas, -4, -4, 1, 1); // the properties of this do not matter
 
-    addChildren(i1, 20);
+    addChildrenDrake(i1, 10);
 
     function addChildren(item, level) {
         if(level <= 0)
             return; 
+        //var c1 = new SimpleItem(item, 12,12,8,8);
         var c1 = new SimpleItem(item, Math.floor(Math.random() * 24), Math.floor(Math.random() * 24), 8, 8);
         var c2 = new SimpleItem(item, Math.floor(Math.random() * 28), Math.floor(Math.random() * 28), 4, 4);
         addChildren(c1, level - 1);
         addChildren(c2, level - 1);
+    }
+
+    function addChildrenDrake(item, level) {
+        if(level <= 0)
+            return; 
+        //var c1 = new SimpleItem(item, 12,12,8,8);
+        var c1 = new SimpleItem(item, 16,0, 16, 16);
+        var c2 = new SimpleItem(item, 16,16, 16, 16);
+        addChildrenDrake(c1, level - 1);
+        addChildrenDrake(c2, level - 1);
     }
 
     i1.parent = null;
@@ -38,8 +49,9 @@ class SimpleItem {
         this.gridHeight = 32;
         this.gridPos = {x:x, y:y};
         this.gridSize = {height:height, width:width};
-        while(!this.color || this.color == this.parent.color)
-            this.color = colors[Math.floor(Math.random() * 10)];
+        // while(!this.color || this.color == this.parent.color)
+            // this.color = colors[Math.floor(Math.random() * 10)];
+        this.color = "doge";
     }
 }
 
@@ -50,7 +62,7 @@ const unitMove = 5;
 const viewWidth = 750;
 const viewHeight = 750;
 const viewPositionInPaper = new paper.Point(0,0);
-const minRenderLength = 3;
+const minRenderLength = 10;
 
 const zoomFactor = 1.08;
 
@@ -100,13 +112,15 @@ class View {
         // change master panel cell size.
         this.svep.cellSize /= zoomFactor;
 
-        this.updateSvepToSmallestParent();
-    
-        
+        //paper.view.zoom /= zoomFactor;
+        //this.viewBorders.scale(zoomFactor);
+
+        //if( this.updateSvepToSmallestParent())   
+        this.updateSvepToSmallestParent();    
         this.refreshView();
     }
     
-    zoomIn() { // zoom in "twice" towards the view center    
+    zoomIn() {    
         //move viewTopleft closer to view center.
         this.viewTopLeft = this.viewTopLeft.add(new paper.Point(viewWidth, viewHeight).divide(this.svep.cellSize).divide( 2 * zoomFactor / (zoomFactor -1))); // see your notes for the math.
     
@@ -115,23 +129,23 @@ class View {
 
         //paper.view.zoom *= zoomFactor;
         //this.viewBorders.scale(1/zoomFactor);
-        
         //if(this.updateSvepToSmallestChild())
-        this.updateSvepToSmallestChild();
+        //    this.refreshView();
+        this.updateSvepToSmallestChild(true);
         this.refreshView();
     }
     
     moveView(x,y) {
-        this.viewTopLeft = this.viewTopLeft.add(new paper.Point(x,y).multiply( 32 / this.svep.cellSize));
+        this.viewTopLeft = this.viewTopLeft.add(new paper.Point(x,y).multiply( 32 / this.svep.cellSize).multiply(paper.view.zoom));
 
-        paper.view.center = paper.view.center.add(new paper.Point(x,y).multiply(32));
-        this.viewBorders.position = this.viewBorders.position.add(new paper.Point(x,y).multiply(32)); // to keep the red frame at the same place.
+        //paper.view.center = paper.view.center.add(new paper.Point(x,y).multiply(32));
+        //this.viewBorders.position = this.viewBorders.position.add(new paper.Point(x,y).multiply(32)); // to keep the red frame at the same place.
 
         
         var change1 = this.updateSvepToSmallestParent();
-        var change2 = this.updateSvepToSmallestChild();
-        
-        if(change1 || change2)
+        var change2 = this.updateSvepToSmallestChild(false);
+
+        //if(change1 || change2)
             this.refreshView();
         
     }
@@ -160,7 +174,7 @@ class View {
         }
     }
     
-    updateSvepToSmallestChild() {
+    updateSvepToSmallestChild(zooming) {
         var self = this;
 
         var updated = false;
@@ -169,6 +183,7 @@ class View {
             changedSvep = false;
             this.svep.children.forEach( child => {
                 if(childEnclosesView(child)){
+                    if(zooming)
                     child.cellSize *= zoomFactor;
                     this.viewTopLeft = this.viewTopLeft.subtract(child.gridPos).multiply(this.svep.cellSize / child.cellSize);
                     this.svep = child;
@@ -190,9 +205,15 @@ class View {
     }
 
     refreshView() {
+        paper.project.activeLayer.removeChildren();
+        console.log("refreshView() called!");
+        
+        // reset camera properties
         paper.view.center = viewPositionInPaper.add(viewWidth / 2, viewHeight / 2);
+        paper.view.zoom = 1;
+
+        // redraw canvas
         this.svep.refPoint = this.viewTopLeft.multiply(-this.svep.cellSize);
-        //svep.children.forEach(child => {child.draw()});
         this.draw(this.svep);
 
         this.viewBorders.remove();
