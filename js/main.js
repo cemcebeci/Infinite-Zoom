@@ -229,7 +229,7 @@ class View {
             item.rect.onMouseDown = function(event){ console.log(item);}
 
             if(item.color == "doge" && !item.raster )
-                item.raster = new paper.Raster("/home/cemcebeci/Desktop/drake.jpg",item.rect.position);
+                item.raster = new paper.Raster("./drake.jpg",item.rect.position);
         }
 
         if(item == this.svep) { // svep's cellSize and refPoint depend on the view. every other item's depends on svep.
