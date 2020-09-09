@@ -34,6 +34,7 @@ function initCanvas(){
     }
 
     i1.parent = null;
+    i1.cellSize = 30;
     return i1;
 }
 
@@ -49,9 +50,9 @@ class SimpleItem {
         this.gridHeight = 32;
         this.gridPos = {x:x, y:y};
         this.gridSize = {height:height, width:width};
-         while(!this.color || this.color == this.parent.color)
-             this.color = colors[Math.floor(Math.random() * 5)];
-        //this.color = "doge";
+        // while(!this.color || this.color == this.parent.color)
+        //     this.color = colors[Math.floor(Math.random() * 9)];
+        this.color = "doge";
     }
 }
 
@@ -59,10 +60,10 @@ class SimpleItem {
 //-----------------------------------------------------------------------------View------------------------------------------------------------------
 
 const unitMove = 5;
-const viewWidth = 750;
-const viewHeight = 750;
+const viewWidth = 1800;
+const viewHeight = 1800;
 const viewPositionInPaper = new paper.Point(0,0);
-const minRenderLength = 10;
+const minRenderLength = 15;
 
 const zoomFactor = 1.08;
 
@@ -161,7 +162,6 @@ class View {
             this.viewTopLeft = new paper.Point(this.svep.gridPos.x, this.svep.gridPos.y).add( this.viewTopLeft.divide(this.svep.parent.cellSize / this.svep.cellSize));
             this.svep = this.svep.parent;
             updated = true;
-            console.log("svep changed to parent");
         }
         return updated;
 
@@ -189,7 +189,6 @@ class View {
                     this.svep = child;
                     changedSvep = true;
                     updated = true;
-                    console.log("svep changed to child");
                 }
             });
         }
@@ -206,7 +205,6 @@ class View {
 
     refreshView() {
         //paper.project.activeLayer.removeChildren();
-        console.log("refreshView() called!");
         
         // reset camera properties
         paper.view.center = viewPositionInPaper.add(viewWidth / 2, viewHeight / 2);
@@ -230,8 +228,8 @@ class View {
             item.rect.fillColor = item.color;
             item.rect.onMouseDown = function(event){ console.log(item);}
 
-            if(item.raster)
-                item.raster.remove();
+            if(item.color == "doge" && !item.raster )
+                item.raster = new paper.Raster("/home/cemcebeci/Desktop/drake.jpg",item.rect.position);
         }
 
         if(item == this.svep) { // svep's cellSize and refPoint depend on the view. every other item's depends on svep.
@@ -250,19 +248,22 @@ class View {
             // item.raster.opacity = 1 - Math.min(1,item.raster.bounds.width/viewWidth) ;
             item.rect.size = new paper.Size(item.gridWidth, item.gridHeight).multiply(item.cellSize);
             item.rect.position = item.refPoint.add( viewPositionInPaper).add( new paper.Point( item.rect.size.width / 2, item.rect.size.height / 2));
+            if(item.raster){
+                item.raster.scale(item.rect.bounds.width / item.raster.bounds.width);
+                item.raster.position = item.rect.position;
+            }
 
             item.children.forEach( child => {
                 
                 if(inView(child)){
-                    console.log("drawing a child of svep");
                     self.draw(child);
                 } else if(child.rect) {
-                    console.log("hiding a child of svep");
                     hide(child);
 
-                    function hide( item) {     
+                    function hide( item) {
                         item.rect.remove();
                         item.rect = null;
+                        if(item.raster) {item.raster.remove();item.raster = null;}
                         item.children.forEach( child => {if(child.rect) {hide(child);}});  
                     }
                 }
@@ -275,7 +276,6 @@ class View {
 
                     // this attribute is used to calculate which of this item's children are in the view.
                     child.viewTopLeftInGrid = (self.viewTopLeft.subtract(child.gridPos)).multiply(child.gridWidth / child.gridSize.width);
-                    console.log(child);
                     return true;
                 }   
             });
@@ -284,6 +284,7 @@ class View {
     
         item.cellSize = item.parent.cellSize * item.gridSize.width / item.gridWidth; // temporary, okay for squares. 
         if(determineSize(item).width < minRenderLength || determineSize(item).height < minRenderLength){ // a very sloppy written optimization.
+            if(item.raster) {item.raster.remove();item.raster = null;}
             item.rect.remove();
             item.rect = null;
             return;
@@ -293,7 +294,10 @@ class View {
         //item.rect = new paper.Shape.Rectangle( determinePosition(item), determineSize(item));
         item.rect.size = determineSize(item);
         item.rect.position = determinePosition(item).add( new paper.Point( item.rect.size.width / 2, item.rect.size.height / 2));
-        
+        if(item.raster){
+            item.raster.scale(item.rect.bounds.width / item.raster.bounds.width);
+            item.raster.position = item.rect.position;
+        }
         // if(item.color == "doge") {
         //     item.raster = new paper.Raster("/home/cemcebeci/Desktop/doge.jpeg",item.rect.position);
         //     item.raster.scale(item.rect.bounds.width/item.raster.bounds.width);
@@ -317,6 +321,7 @@ class View {
                 function hide( item) {     
                     item.rect.remove();
                     item.rect = null;
+                    if(item.raster) {item.raster.remove();item.raster = null;}
                     item.children.forEach( child => {if(child.rect) {hide(child);}});  
                 }
             }
