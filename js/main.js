@@ -60,8 +60,8 @@ class SimpleItem {
 //-----------------------------------------------------------------------------View------------------------------------------------------------------
 
 const unitMove = 5;
-const viewWidth = 750;
-const viewHeight = 750;
+const viewWidth = 375;
+const viewHeight = 375;
 const viewPositionInPaper = new paper.Point(0,0);
 const minRenderLength = 15;
 
